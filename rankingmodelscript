@@ -1,0 +1,47 @@
+import torch
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+
+# linear model
+class LinearModel(torch.nn.Module):
+    def __init__(self, input_size):
+        super(LinearModel, self).__init__()
+        self.linear = torch.nn.Linear(input_size, 1)
+
+    def forward(self, x):
+        return self.linear(x)
+
+# Create dummy variables
+items_to_boost = [
+
+    "product_is_desktop",
+    "product_is_laptop",
+
+]
+
+translate_variable_into_hawksearch = {
+    "product_is_laptop" : "Category DTE Facet is Laptops",
+    "product_is_desktop": "Category DTE Facet is Desktops",
+
+}
+
+
+# Initialize the model
+input_size = len(items_to_boost)
+model = LinearModel(input_size)
+
+# extract weights 
+with torch.no_grad():
+    weights = model.linear.weight.data.squeeze().numpy()
+
+# Scale weights (-200 to 200)
+scaler = MinMaxScaler(feature_range=(-200, 200))
+weights = scaler.fit_transform(weights.reshape(-1, 1)).flatten()
+
+# dataFrame
+df = pd.DataFrame({
+    "items to boost": [translate_variable_into_hawksearch[var_name] for var_name in items_to_boost],
+    "boost": weights
+})
+
+df.to_csv("script.csv", index=False)
